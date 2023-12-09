@@ -1,3 +1,6 @@
+
+[![Release](https://github.com/zanetworker/hcp-sizer/actions/workflows/release_new.yaml/badge.svg)](https://github.com/zanetworker/hcp-sizer/actions/workflows/release_new.yaml)
+
 # Hosted Control Plane Sizing Calculator
 
 This repository contains a command-line tool for calculating the sizing requirements of self-managed hosted control planes (HCP) for Red Hat OpenShift.
