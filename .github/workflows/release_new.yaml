@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: Build and Release
+    name: Build and Release HCP Sizer
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
