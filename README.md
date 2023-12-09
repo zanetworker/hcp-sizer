@@ -13,6 +13,9 @@ The tool factors in CPU, memory, and ETCD storage based on the workload characte
 - Estimate CPU and memory requirements based on request-based or load-based sizing methods.
 - Estimate ETCD storage requirements based on the number of pods.
 
+
+# Build with Go 
+
 ## Prerequisites
 
 To use this tool, you need to have Go installed on your machine. Visit [Go's official documentation](https://golang.org/doc/install) for installation instructions.
@@ -29,10 +32,19 @@ go build -o hcp-sizer
 3. Run the calculator `./hcp-sizer`
 4. Follow the interactive prompts to enter your cluster's specifications and choose the calculation method.
 
+# Use the release binaries
 
-## Estimating API server QPS
 
-To accurately size your HCP, you'll need to estimate the QPS rate for your cluster. Run the following query on your existing cluster:
+1. Go to the [release page](https://github.com/zanetworker/hcp-sizer/releases).
+2. Download the binary for your OS.
+3. Change permission on the binary e.g., hcp-calculator-darwin-amd64 `chmod +x hcp-calculator-darwin-amd64`
+4. Run the calculator `./hcp-calculator-darwin-amd64`
+
+
+
+## Estimating API server QPS for load-based Sizing
+
+To accurately size your HCP using the `load-based` method, you'll need to estimate the QPS rate for your cluster. Run the following query on your existing cluster:
 
 ```sh
 kubectl get --raw /metrics | grep -E 'apiserver_request_total|apiserver_request_duration_seconds_count'
@@ -56,7 +68,7 @@ Typical QPS categories are as follows for reference:
 | High      | 5000-10000 QPS  |
 | Very High | 10000-20000 QPS |
 
-### Server Categories
+## Server Categories
 
 Typical server categories are as follows for reference:
 
@@ -68,7 +80,7 @@ Typical server categories are as follows for reference:
 
 
 # Demo
-[HCP Sizer Demo](https://www.youtube.com/watch?v=VIDEO_ID)
+[HCP Sizer Demo](https://www.youtube.com/watch?v=Da95m8sZgEo)
 
 # Contributing
 Contributions to the HCP Sizing Calculator are welcome! Please read our contributing guidelines to get started.
