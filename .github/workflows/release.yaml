@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'  # Make sure to use a valid Go version
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Build Binary for Linux
+        run: GOOS=linux GOARCH=amd64 go build -o hcp-calculator-linux-amd64
+
+      - name: Build Binary for Windows
+        run: GOOS=windows GOARCH=amd64 go build -o hcp-calculator-windows-amd64.exe
+
+      - name: Build Binary for macOS
+        run: GOOS=darwin GOARCH=amd64 go build -o hcp-calculator-darwin-amd64
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            hcp-calculator-linux-amd64
+            hcp-calculator-windows-amd64.exe
+            hcp-calculator-darwin-amd64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

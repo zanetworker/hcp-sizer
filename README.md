@@ -1,6 +1,6 @@
 # Hosted Control Plane Sizing Calculator
 
-This repository contains a command-line tool for calculating the sizing requirements of self-managed hosted control planes (HCP) OpenShift clusters.
+This repository contains a command-line tool for calculating the sizing requirements of self-managed hosted control planes (HCP) for Red Hat OpenShift.
 
 The tool factors in CPU, memory, and ETCD storage based on the workload characteristics and the expected Queries Per Second (QPS) rate to the KubeAPI server to give you the best estimates based on studies performed by performance and scale teams.
 
@@ -63,6 +63,9 @@ Typical server categories are as follows for reference:
 | **Mid-Range Servers**   | **CPU**: Generally have between 12 to 24 cores.<br/>**Memory**: Equipped with 64GB to 256GB of RAM.                           |
 | **High-End Servers**    | **CPU**: Could have 32 cores or more, potentially with multiple CPUs.<br/>**Memory**: From 256GB to several terabytes of RAM. |
 
+
+# Demo
+[HCP Sizer Demo](https://www.youtube.com/watch?v=VIDEO_ID)
 
 # Contributing
 Contributions to the HCP Sizing Calculator are welcome! Please read our contributing guidelines to get started.
