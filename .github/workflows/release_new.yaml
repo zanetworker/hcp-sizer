@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.16'  # Make sure to use a valid Go version
+          go-version: '1.21'  # Make sure to use a valid Go version
 
       - name: Check out code
         uses: actions/checkout@v2
@@ -39,3 +39,4 @@ jobs:
             hcp-calculator-darwin-amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
