@@ -25,12 +25,42 @@ To use this tool, you need to have Go installed on your machine. Visit [Go's off
 1. Clone the repository to your local machine.
 2. Navigate to the cloned directory and build the tool with Go:
 
+## Run in Manual Interactive Mode
 ```sh
 go build -o hcp-sizer
 ```
 
 3. Run the calculator `./hcp-sizer`
 4. Follow the interactive prompts to enter your cluster's specifications and choose the calculation method.
+
+
+## Run in Discovery Mode
+
+The HCP Sizer application has a special '_discover_' mode, which allows it to _discover_ needed input from a cluster directly. In this mode, the application will automatically fetch data from a Kubernetes cluster and perform sizing calculations without interactive prompts. This is particularly useful for continuous monitoring or periodic data fetching scenarios.
+
+### How to Enable Discovery Mode
+To run the HCP Sizer in _discovery_ mode, use the -d or --discover flag when starting the application. Here's how you can do it:
+
+```sh 
+./hcp-sizer --discover
+````
+
+Or, using the shorthand flag version:
+    
+```sh
+./hcp-sizer -d
+``` 
+
+### What Happens in discovery Mode
+When running in daemon mode, the application performs the following actions:
+
+* Initializes a connection to the Kubernetes cluster using the configured Kubernetes client.
+* Fetches the current resource data (CPU, memory, and maximum pods) for nodes labeled as control-plane.
+* Performs the sizing calculations based on the fetched data.
+* Outputs the calculation results to the console.
+* This process is done once, immediately after the application starts.
+* Logging and Output
+
 
 # Use the release binaries
 

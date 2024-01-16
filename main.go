@@ -50,12 +50,12 @@ func calculateETCDStorage(podCount float64) float64 {
 }
 
 func calculateMaxHCPs(workerCPUs, workerMemory, maxPods, apiRate float64, useLoadBased bool) float64 {
-	// print all values for debugging
+	//print all values for debugging
 	fmt.Printf("workerCPUs: %f\n", workerCPUs)
 	fmt.Printf("workerMemory: %f\n", workerMemory)
 	fmt.Printf("maxPods: %f\n", maxPods)
 	fmt.Printf("apiRate: %f\n", apiRate)
-	fmt.Printf("useLoadBased: %t\n", useLoadBased)
+	fmt.Printf("Using Load-based: %t\n", useLoadBased)
 
 	maxHCPsByCPU := workerCPUs / cpuRequestPerHCP
 	maxHCPsByMemory := workerMemory / memoryRequestPerHCP
@@ -118,22 +118,48 @@ func promptForSelection(promptLabel string, items []string) int {
 	return -1
 }
 
+var discoverMode bool
+
+func init() {
+	rootCmd.PersistentFlags().BoolVarP(&discoverMode, "discover", "d", false, "Run the application in discover mode")
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "hcp-sizer",
 	Short: "An HCP Sizing Calculator based on Science!",
 	Run: func(cmd *cobra.Command, args []string) {
 		resources := ServerResources{}
+		if discoverMode {
+			clientset, err := InitializeKubernetesClientForExternalUse()
+			if err != nil {
+				fmt.Println("Failed to initialize Kubernetes client:", err)
+				os.Exit(1)
+			}
 
-		resources.WorkerCPUs = promptForInput("Enter the number of vCPUs on the worker node")
-		resources.WorkerMemory = promptForInput("Enter the memory (in GiB) on the worker node")
-		resources.MaxPods = promptForInput("Enter the maximum number of pods on the worker node (usually 250 or 500)")
-		resources.PodCount = promptForInput("Enter the number of pods you plan to run on your cluster (for ETCD storage calculation)")
-		resources.CalculationMethod = promptForSelection("Select Calculation Method", []string{"Request-Based", "Load-Based"})
-		resources.UseLoadBased = resources.CalculationMethod == 1
+			nodeResources, err := FetchClusterDataTwo(clientset)
+			if err != nil {
+				fmt.Println("Failed to fetch data from Kubernetes cluster:", err)
+				os.Exit(1)
+			}
 
+			// for simplicity, let's pick the first node we see
+			resources.WorkerCPUs = nodeResources[0].CPU
+			resources.WorkerMemory = nodeResources[0].Memory
+			resources.MaxPods = float64(nodeResources[0].MaxPods)
+			resources.PodCount = promptForInput("Enter the number of pods you plan to run on your cluster (for ETCD storage calculation)")
+			resources.CalculationMethod = promptForSelection("Select Calculation Method", []string{"Request-Based", "Load-Based"})
+			resources.UseLoadBased = resources.CalculationMethod == 1
+		} else {
+			// add flag for command
+			resources.WorkerCPUs = promptForInput("Enter the number of vCPUs on the worker node")
+			resources.WorkerMemory = promptForInput("Enter the memory (in GiB) on the worker node")
+			resources.MaxPods = promptForInput("Enter the maximum number of pods on the worker node (usually 250 or 500)")
+			resources.PodCount = promptForInput("Enter the number of pods you plan to run on your cluster (for ETCD storage calculation)")
+			resources.CalculationMethod = promptForSelection("Select Calculation Method", []string{"Request-Based", "Load-Based"})
+			resources.UseLoadBased = resources.CalculationMethod == 1
+		}
 		// Check evaluation method, request-based or load-based (request is the more generic method)
 		// load-based is preferred when data about QPS is available (e.g. from an existing cluster)
-
 		if resources.UseLoadBased {
 			green := color.New(color.FgGreen)
 
@@ -153,34 +179,14 @@ var rootCmd = &cobra.Command{
 		// Print the results
 		italitYellow.Printf("Maximum HCPs that can be hosted: %.2f\n", math.Floor(resources.MaxHCPs))
 		italitYellow.Printf("Estimated HCP ETCD Storage Requirement: %.3f GiB\n", resources.EtcdStorage)
+
 	},
 }
 
 func main() {
-	//if err := rootCmd.Execute(); err != nil {
-	//	fmt.Println(err)
-	//	os.Exit(1)
-	//}
-
-	clientset, err := InitializeKubernetesClientForExternalUse()
-	if err != nil {
-		fmt.Println("Failed to initialize Kubernetes client:", err)
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
 		os.Exit(1)
-	}
-
-	resources, err := FetchClusterDataTwo(clientset)
-	if err != nil {
-		fmt.Println("Failed to fetch data from Kubernetes cluster:", err)
-		os.Exit(1)
-	}
-
-	// for simplicity, let's pick the first node we see
-	resources = []NodeResourceInfo{resources[0]}
-	for _, resource := range resources {
-		fmt.Printf("NodeName: %s\n", resource.NodeName)
-		fmt.Printf("CPU: %f\n", resource.CPU)
-		fmt.Printf("Memory: %f\n", resource.Memory)
-		fmt.Printf("MaxPods: %d\n", resource.MaxPods)
 	}
 
 }

@@ -50,7 +50,7 @@ type NodeResourceInfo struct {
 	NodeName string
 	CPU      float64 // CPUs in the node
 	Memory   float64 // Memory in GiB
-	MaxPods  int     // Max Pods, needs custom logic for OpenShift
+	MaxPods  int     // Max Pods
 }
 
 func FetchClusterDataTwo(clientset *kubernetes.Clientset) ([]NodeResourceInfo, error) {
@@ -68,8 +68,8 @@ func FetchClusterDataTwo(clientset *kubernetes.Clientset) ([]NodeResourceInfo, e
 		cpu := node.Status.Allocatable.Cpu().MilliValue()
 		memory := node.Status.Allocatable.Memory().Value()
 		memoryInGiB := float64(memory) / (1024 * 1024 * 1024)
-		// Placeholder for maxPods logic
-		maxPods := inferMaxPodsFromNode(node) // Implement this function based on your setup
+
+		maxPods := inferMaxPodsFromNode(node)
 
 		nodesResourceInfo = append(nodesResourceInfo, NodeResourceInfo{
 			NodeName: node.Name,
@@ -88,12 +88,12 @@ func inferMaxPodsFromNode(node corev1.Node) int {
 		// The value is a Quantity, which needs to be parsed to an int
 		maxPods, b := allocatablePods.AsInt64()
 		if b != true {
-			// Handle error or use a default value if parsing fails
-			return 250 // Example default value
+			// Return the defult if the value cannot be parsed or if scale didn't happen
+			return 250
 		}
 		return int(maxPods)
 	}
 
 	// Default value if the allocatable pods are not set
-	return 250 // Adjust this default value based on your needs
+	return 250
 }
