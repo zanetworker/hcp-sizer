@@ -52,10 +52,11 @@ Or, using the shorthand flag version:
 ``` 
 
 ### What Happens in discovery Mode
+
 When running in daemon mode, the application performs the following actions:
 
 * Initializes a connection to the Kubernetes cluster using the configured Kubernetes client.
-* Fetches the current resource data (CPU, memory, and maximum pods) for nodes labeled as control-plane.
+* Fetches the current resource data (CPU, memory, and maximum pods) for nodes labeled as control-plane (`node-role.kubernetes.io/control-plane=`).
 * Performs the sizing calculations based on the fetched data.
 * Outputs the calculation results to the console.
 * This process is done once, immediately after the application starts.
