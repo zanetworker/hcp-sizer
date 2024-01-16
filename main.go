@@ -164,8 +164,9 @@ var rootCmd = &cobra.Command{
 			green := color.New(color.FgGreen)
 
 			italicGreen := green.Add(color.Italic)
-			italicGreen.Println("❗️Hint: Run the following query in an existing cluster to estimate your QPS:")
+			italicGreen.Println("❗️Hint 1: Run the following query in an existing cluster to estimate your QPS:")
 			italicGreen.Println(`sum(rate(apiserver_request_total{namespace=~"clusters-$name*"}[2m])) by (namespace)`)
+			italicGreen.Println("❗Hint 2: Low: 0-1000 QPS, Medium: 1000-5000 QPS, High: 5000-10000 QPS, Very High: 10000-20000 QPS")
 
 			resources.APIRate = promptForInput("Enter the estimated API rate (QPS)")
 		}
