@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
-	"math"
-	"os"
-	"strconv"
-
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"math"
+	"os"
+	"strconv"
 )
 
 // Check https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.9/html/clusters/cluster_mce_overview#hosted-sizing-guidance
@@ -158,8 +157,30 @@ var rootCmd = &cobra.Command{
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+	//if err := rootCmd.Execute(); err != nil {
+	//	fmt.Println(err)
+	//	os.Exit(1)
+	//}
+
+	clientset, err := InitializeKubernetesClientForExternalUse()
+	if err != nil {
+		fmt.Println("Failed to initialize Kubernetes client:", err)
 		os.Exit(1)
 	}
+
+	resources, err := FetchClusterDataTwo(clientset)
+	if err != nil {
+		fmt.Println("Failed to fetch data from Kubernetes cluster:", err)
+		os.Exit(1)
+	}
+
+	// for simplicity, let's pick the first node we see
+	resources = []NodeResourceInfo{resources[0]}
+	for _, resource := range resources {
+		fmt.Printf("NodeName: %s\n", resource.NodeName)
+		fmt.Printf("CPU: %f\n", resource.CPU)
+		fmt.Printf("Memory: %f\n", resource.Memory)
+		fmt.Printf("MaxPods: %d\n", resource.MaxPods)
+	}
+
 }
