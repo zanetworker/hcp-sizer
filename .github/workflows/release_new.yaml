@@ -26,10 +26,12 @@ jobs:
 
       - name: Build Binary for Windows
         run: GOOS=windows GOARCH=amd64 go build -o hcp-calculator-windows-amd64.exe
-
+      
       - name: Build Binary for macOS
-        run: GOOS=darwin GOARCH=amd64 go build -o hcp-calculator-darwin-amd64
-
+        run: |
+          GOOS=darwin GOARCH=amd64 go build -o hcp-calculator-darwin-amd64
+          GOOS=darwin GOARCH=arm64 go build -o hcp-calculator-darwin-arm64
+      
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v1
         with:
