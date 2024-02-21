@@ -84,7 +84,7 @@ kubectl get --raw /metrics | grep -E 'apiserver_request_total|apiserver_request_
 or 
 
 ```sh
-sum(rate(apiserver_request_total{namespace=~"clusters-$name*"}[2m])) by (namespace)
+sum(rate(apiserver_request_total{}[2m])) by (namespace)
 ```
 This Prometheus query will provide you with the rate of queries to your API server from your cluster, which informs sizer's load-based method.
 
