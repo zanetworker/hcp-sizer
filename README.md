@@ -94,10 +94,9 @@ Typical QPS categories are as follows for reference:
 
 | Category  | Description     |
 |-----------|-----------------|
-| Low       | 0-1000 QPS      |
-| Medium    | 1000-5000 QPS   |
-| High      | 5000-10000 QPS  |
-| Very High | 10000-20000 QPS |
+| Low       | 0-500 QPS      |
+| Medium    | 500-1000 QPS   |
+| High      | 1000-5000 QPS  |
 
 ## Server Categories
 

@@ -178,7 +178,7 @@ var rootCmd = &cobra.Command{
 		italitYellow := yellow.Add(color.Italic)
 
 		// Print the results
-		italitYellow.Printf("Maximum HCPs that can be hosted: %.2f\n", math.Floor(resources.MaxHCPs))
+		italitYellow.Printf("Maximum HCPs that can be hosted per node: %.2f\n", math.Floor(resources.MaxHCPs))
 		italitYellow.Printf("Estimated HCP ETCD Storage Requirement: %.3f GiB\n", resources.EtcdStorage)
 
 	},
