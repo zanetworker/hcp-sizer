@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/manifoldco/promptui"
-	"github.com/spf13/cobra"
 	"math"
 	"os"
 	"strconv"
+
+	"github.com/fatih/color"
+	"github.com/manifoldco/promptui"
+	"github.com/spf13/cobra"
 )
 
 // Check https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.9/html/clusters/cluster_mce_overview#hosted-sizing-guidance
@@ -16,9 +17,11 @@ import (
 // TODO Keep in mind that this is based on performance and scale regression fitting and is subject to change in the future as more testing
 // is done and more data is collected
 const (
-	cpuRequestPerHCP    float64 = 5  // CPUs required per HCP
-	memoryRequestPerHCP float64 = 18 // GB memory required per HCP
-	podsPerHCP          float64 = 75 // Pods per HCP
+	controlPlaneCPU     float64 = 8   // CPUs required for OpenShift Control Plane
+	controlPlaneMemory  float64 = 2.5 // GB Memory for OpenShift Control Plane
+	cpuRequestPerHCP    float64 = 5   // CPUs required per HCP
+	memoryRequestPerHCP float64 = 18  // GB memory required per HCP
+	podsPerHCP          float64 = 75  // Pods per HCP
 
 	incrementalCPUUsagePer1KQPS float64 = 9.0 // Incremental CPU usage per 1K QPS
 	incrementalMemUsagePer1KQPS float64 = 2.5 // Incremental Memory usage per 1K QPS
@@ -37,6 +40,9 @@ type ServerResources struct {
 	MaxHCPs           float64
 	UseLoadBased      bool
 	CalculationMethod int
+	HCPlimit          string
+	totalNodes        float64
+	totalHCPs         float64
 }
 
 // Linear regression constants for ETCD storage calculation derived from performance and scale regression fitting
@@ -49,7 +55,7 @@ func calculateETCDStorage(podCount float64) float64 {
 	return etcdStorageSlope*podCount + etcdStorageOffset
 }
 
-func calculateMaxHCPs(workerCPUs, workerMemory, maxPods, apiRate float64, useLoadBased bool) float64 {
+func calculateMaxHCPs(workerCPUs, workerMemory, maxPods, apiRate float64, useLoadBased bool) (float64, string) {
 	//print all values for debugging
 	fmt.Printf("workerCPUs: %f\n", workerCPUs)
 	fmt.Printf("workerMemory: %f\n", workerMemory)
@@ -57,8 +63,10 @@ func calculateMaxHCPs(workerCPUs, workerMemory, maxPods, apiRate float64, useLoa
 	fmt.Printf("apiRate: %f\n", apiRate)
 	fmt.Printf("Using Load-based: %t\n", useLoadBased)
 
-	maxHCPsByCPU := workerCPUs / cpuRequestPerHCP
-	maxHCPsByMemory := workerMemory / memoryRequestPerHCP
+	var limitHCP string
+
+	maxHCPsByCPU := (workerCPUs - controlPlaneCPU) / cpuRequestPerHCP
+	maxHCPsByMemory := (workerMemory - controlPlaneMemory) / memoryRequestPerHCP
 	maxHCPsByPods := maxPods / podsPerHCP
 
 	var maxHCPsByCPUUsage, maxHCPsByMemoryUsage float64
@@ -74,7 +82,18 @@ func calculateMaxHCPs(workerCPUs, workerMemory, maxPods, apiRate float64, useLoa
 	// This considers the most constrained resource as the limiting factor (e.g., CPU, Memory, Pods, etc.)
 	minHCPs := math.Min(maxHCPsByCPU, math.Min(maxHCPsByCPUUsage, math.Min(maxHCPsByMemory, math.Min(maxHCPsByMemoryUsage, maxHCPsByPods))))
 
-	return minHCPs
+	// Return which resources is limiting the maximum number of HCPs that can be hosted
+	if maxHCPsByCPUUsage == minHCPs || maxHCPsByCPU == minHCPs {
+		limitHCP = "CPU"
+	}
+	if maxHCPsByMemory == minHCPs || maxHCPsByMemoryUsage == minHCPs {
+		limitHCP = "Memory"
+	}
+	if maxHCPsByPods == minHCPs {
+		limitHCP = "Pods"
+	}
+
+	return minHCPs, limitHCP
 }
 
 func promptForInput(promptLabel string) float64 {
@@ -147,6 +166,7 @@ var rootCmd = &cobra.Command{
 			resources.WorkerMemory = nodeResources[0].Memory
 			resources.MaxPods = float64(nodeResources[0].MaxPods)
 			resources.PodCount = promptForInput("Enter the number of pods you plan to run on your cluster (for ETCD storage calculation)")
+			resources.totalNodes = promptForInput("Enter the number nodes you plan to have in your hosting cluster")
 			resources.CalculationMethod = promptForSelection("Select Calculation Method", []string{"Request-Based", "Load-Based"})
 			resources.UseLoadBased = resources.CalculationMethod == 1
 		} else {
@@ -155,6 +175,7 @@ var rootCmd = &cobra.Command{
 			resources.WorkerMemory = promptForInput("Enter the memory (in GiB) on the worker node")
 			resources.MaxPods = promptForInput("Enter the maximum number of pods on the worker node (usually 250 or 500)")
 			resources.PodCount = promptForInput("Enter the number of pods you plan to run on your cluster (for ETCD storage calculation)")
+			resources.totalNodes = promptForInput("Enter the number nodes you plan to have in your hosting cluster")
 			resources.CalculationMethod = promptForSelection("Select Calculation Method", []string{"Request-Based", "Load-Based"})
 			resources.UseLoadBased = resources.CalculationMethod == 1
 		}
@@ -171,15 +192,18 @@ var rootCmd = &cobra.Command{
 			resources.APIRate = promptForInput("Enter the estimated API rate (QPS)")
 		}
 
-		resources.MaxHCPs = calculateMaxHCPs(resources.WorkerCPUs, resources.WorkerMemory, resources.MaxPods, resources.APIRate, resources.UseLoadBased)
+		resources.MaxHCPs, resources.HCPlimit = calculateMaxHCPs(resources.WorkerCPUs, resources.WorkerMemory, resources.MaxPods, resources.APIRate, resources.UseLoadBased)
 		resources.EtcdStorage = calculateETCDStorage(resources.PodCount)
+		resources.totalHCPs = resources.totalNodes * math.Floor(resources.MaxHCPs)
 
 		yellow := color.New(color.FgYellow)
 		italitYellow := yellow.Add(color.Italic)
 
 		// Print the results
 		italitYellow.Printf("Maximum HCPs that can be hosted per node: %.2f\n", math.Floor(resources.MaxHCPs))
+		italitYellow.Printf("Estimated HCPs that can be hosted in the hosting cluster: %.2f\n", math.Floor(resources.totalHCPs))
 		italitYellow.Printf("Estimated HCP ETCD Storage Requirement: %.3f GiB\n", resources.EtcdStorage)
+		italitYellow.Printf("Limiting Resource: %s\n", resources.HCPlimit)
 
 	},
 }
